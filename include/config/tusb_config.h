@@ -84,9 +84,6 @@
 #define CFG_TUD_CDC_RX_BUFSIZE    64
 #define CFG_TUD_CDC_TX_BUFSIZE    64
 
-// MSC Buffer size of Device Mass storage
-#define CFG_TUD_MSC_BUFSIZE      512
-
 // Vendor FIFO size of TX and RX
 // If not configured vendor endpoints will not be buffered
 #define CFG_TUD_VENDOR_RX_BUFSIZE 64

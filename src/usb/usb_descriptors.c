@@ -193,11 +193,11 @@ TU_VERIFY_STATIC(sizeof(desc_ms_os_20) == MS_OS_20_DESC_LEN, "Incorrect size");
 char const* string_desc_arr [] =
 {
   (const char[]) { 0x09, 0x04 }, // 0: is supported language is English (0x0409)
-  "Hoermann",                    // 1: Manufacturer
-  "TSE902 Bootloader",           // 2: Product
+  "emicrotec",                   // 1: Manufacturer
+  "RFUSB",                       // 2: Product
   "123456",                      // 3: Serials, should use chip ID
-  "TSE902 CDC",                  // 4: CDC Interface
-  "TSE902 WebUSB"                // 5: Vendor Interface
+  "RFUSB CDC",                   // 4: CDC Interface
+  "RFUSB WebUSB"                 // 5: Vendor Interface
 };
 
 static uint16_t _desc_str[32];

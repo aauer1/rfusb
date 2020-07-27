@@ -17,9 +17,10 @@ static USART_HandleTypeDef usart;
 static Protocol protocol;
 
 //------------------------------------------------------------------------------
-void OTG_FS_IRQHandler(void)
+void USB_IRQHandler(void)
 {
-    dcd_int_handler(0);
+    ledToggle(LED1);
+    tud_int_handler(0);
 }
 
 //------------------------------------------------------------------------------
@@ -58,6 +59,8 @@ static void SystemClock_Config(void)
 {
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+  static RCC_CRSInitTypeDef RCC_CRSInitStruct;
 
   /* Enable Power Control clock */
   __PWR_CLK_ENABLE();
@@ -68,7 +71,7 @@ static void SystemClock_Config(void)
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /* Enable MSI Oscillator */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_HSI48;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSEState = RCC_HSE_OFF;
   RCC_OscInitStruct.LSEState = RCC_LSE_OFF;
@@ -82,6 +85,10 @@ static void SystemClock_Config(void)
     Error_Handler();
   }
 
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB;
+  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_HSI48;
+  HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct);
+
   RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
@@ -91,6 +98,19 @@ static void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
+  __HAL_RCC_CRS_CLK_ENABLE();
+  /* Default Synchro Signal division factor (not divided) */
+   RCC_CRSInitStruct.Prescaler = RCC_CRS_SYNC_DIV1;
+   /* Set the SYNCSRC[1:0] bits according to CRS_Source value */
+   RCC_CRSInitStruct.Source = RCC_CRS_SYNC_SOURCE_USB;
+   /* HSI48 is synchronized with USB SOF at 1KHz rate */
+   RCC_CRSInitStruct.ReloadValue =  __HAL_RCC_CRS_RELOADVALUE_CALCULATE(48000000, 1000);
+   RCC_CRSInitStruct.ErrorLimitValue = RCC_CRS_ERRORLIMIT_DEFAULT;
+   /* Set the TRIM[5:0] to the default value*/
+   RCC_CRSInitStruct.HSI48CalibrationValue = 0x20;
+   /* Start automatic synchronization */
+   HAL_RCCEx_CRSConfig (&RCC_CRSInitStruct);
 
 }
 
@@ -158,6 +178,12 @@ int main(void)
     protocolSetCallback(&protocol, onFrameReceived);
 
     info("RFUSB started");
+
+    __HAL_RCC_USB_CLK_ENABLE();
+    //NVIC_SetPriority(USB_IRQn, 4);
+    tusb_init();
+    dcd_int_enable(0);
+
 /*
     __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
     NVIC_SetPriority(OTG_FS_IRQn, 10);
@@ -172,8 +198,8 @@ int main(void)
             timerRestart(&timer);
             ledToggle(LED0);
         }
-/*
         tud_task();
+/*
         webusbService();
         protocolService(&protocol);
 */

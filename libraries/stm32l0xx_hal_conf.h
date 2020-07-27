@@ -49,35 +49,36 @@
   * @brief This is the list of modules to be used in the HAL driver 
   */
 #define HAL_MODULE_ENABLED  
-/* #define HAL_ADC_MODULE_ENABLED    */
-/* #define HAL_COMP_MODULE_ENABLED  */
-/* #define HAL_CRC_MODULE_ENABLED   */
-#define HAL_CRYP_MODULE_ENABLED
-/* #define HAL_DAC_MODULE_ENABLED    */
+// #define HAL_ADC_MODULE_ENABLED
+/* #define HAL_COMP_MODULE_ENABLED */
+/* #define HAL_CRC_MODULE_ENABLED */
+/* #define HAL_CRYP_MODULE_ENABLED */
+/* #define HAL_DAC_MODULE_ENABLED */
 #define HAL_DMA_MODULE_ENABLED
 /* #define HAL_FIREWALL_MODULE_ENABLED */
 #define HAL_FLASH_MODULE_ENABLED
 #define HAL_GPIO_MODULE_ENABLED
 /* #define HAL_I2C_MODULE_ENABLED */
-/* #define HAL_I2S_MODULE_ENABLED    */
-#define HAL_IWDG_MODULE_ENABLED
-/* #define HAL_LCD_MODULE_ENABLED  */
+/* #define HAL_I2S_MODULE_ENABLED */
+/* #define HAL_IWDG_MODULE_ENABLED */
+/* #define HAL_LCD_MODULE_ENABLED */
 /* #define HAL_LPTIM_MODULE_ENABLED */
 #define HAL_PWR_MODULE_ENABLED  
 #define HAL_RCC_MODULE_ENABLED 
-#define HAL_RNG_MODULE_ENABLED
+//#define HAL_RNG_MODULE_ENABLED
 /* #define HAL_RTC_MODULE_ENABLED */
 #define HAL_SPI_MODULE_ENABLED
 #define HAL_TIM_MODULE_ENABLED
-/* #define HAL_TSC_MODULE_ENABLED    */
-/* #define HAL_UART_MODULE_ENABLED  */
+/* #define HAL_TSC_MODULE_ENABLED */
+/* #define HAL_UART_MODULE_ENABLED */
 #define HAL_USART_MODULE_ENABLED
-/* #define HAL_IRDA_MODULE_ENABLED  */
-/* #define HAL_SMARTCARD_MODULE_ENABLED  */
-/* #define HAL_SMBUS_MODULE_ENABLED  */
-/* #define HAL_WWDG_MODULE_ENABLED   */
+/* #define HAL_IRDA_MODULE_ENABLED */
+/* #define HAL_SMARTCARD_MODULE_ENABLED */
+/* #define HAL_SMBUS_MODULE_ENABLED */
+/* #define HAL_WWDG_MODULE_ENABLED */
+//#define HAL_PCD_MODULE_ENABLED
 #define HAL_CORTEX_MODULE_ENABLED
-/* #define HAL_PCD_MODULE_ENABLED  */
+/* #define HAL_PCD_MODULE_ENABLED */
 
 /* ########################## Oscillator Values adaptation ####################*/
 /**
@@ -98,7 +99,7 @@
   *        This value is the default MSI range value after Reset.
   */
 #if !defined  (MSI_VALUE)
-  #define MSI_VALUE    ((uint32_t)2000000U) /*!< Value of the Internal oscillator in Hz*/
+  #define MSI_VALUE    ((uint32_t)2097152U) /*!< Value of the Internal oscillator in Hz*/
 #endif /* MSI_VALUE */
 /**
   * @brief Internal High Speed oscillator (HSI) value.
@@ -153,7 +154,7 @@
 #define  TICK_INT_PRIORITY            (((uint32_t)1U<<__NVIC_PRIO_BITS) - 1U)    /*!< tick interrupt priority */            
 #define  USE_RTOS                     0U     
 #define  PREFETCH_ENABLE              1U              
-#define  PREREAD_ENABLE               0U
+#define  PREREAD_ENABLE               1U
 #define  BUFFER_CACHE_DISABLE         0U
 
 /* ########################## Assert Selection ############################## */
