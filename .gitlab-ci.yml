@@ -1,0 +1,18 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_DEPTH: 0
+
+stages:
+  - build
+
+build:
+  stage: build
+  tags: 
+    - stm32
+  script: 
+    - make distclean 
+    - make
+  artifacts:
+    paths:
+      - main.hex
+

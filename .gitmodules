@@ -1,0 +1,3 @@
+[submodule "tinyusb"]
+	path = tinyusb
+	url = git@gitlab.lan:tse902/tinyusb.git
