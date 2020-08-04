@@ -2,6 +2,8 @@
 #include "board.h"
 #include "timer.h"
 #include "protocol.h"
+#include "datalink.h"
+#include "rfm22b.h"
 #include "usb/webusb.h"
 
 #include "debug.h"
@@ -16,10 +18,28 @@
 static USART_HandleTypeDef usart;
 static Protocol protocol;
 
+static void onReceive(Datalink *proto);
+static void onFailure(Datalink *proto);
+
+static RFM22BConfig radio =
+{
+    .spi = SPI1,
+    .shdn = 2,
+    .cs = 4,
+    .irq = 3
+};
+
+static Datalink datalink =
+{
+    .src_addr = 0xFFFE,
+    .retransmission = 3,
+    .onReceive = onReceive,
+    .onFailure = onFailure,
+};
+
 //------------------------------------------------------------------------------
 void USB_IRQHandler(void)
 {
-    ledToggle(LED1);
     tud_int_handler(0);
 }
 
@@ -139,14 +159,29 @@ void HAL_MspInit(void)
 }
 
 //------------------------------------------------------------------------------
-static void onFrameReceived(Protocol *proto, Frame *frame)
+static void onReceive(Datalink *proto)
+{
+    debug("Receive");
+}
+
+//------------------------------------------------------------------------------
+static void onFailure(Datalink *proto)
+{
+
+}
+
+//------------------------------------------------------------------------------
+static void onFrameReceived(Protocol *proto, UsbFrame *frame)
 {
     switch(frame->command)
     {
-        case CMD_ERASE_APPLICATION:
+        case CMD_GET_VERSION:
             break;
 
-        case CMD_FIRMWARE_UPDATE:
+        case CMD_READ_COUNTER:
+            break;
+
+        case CMD_RESET_COUNTER:
             break;
 
         case CMD_RESET:
@@ -157,11 +192,17 @@ static void onFrameReceived(Protocol *proto, Frame *frame)
         {
             debug("Unknown Command: %d", frame->command);
 
-            Frame *resp = protocolAllocFrame(proto);
-            frameInit(resp, frame->command, FLAG_NAK);
+            UsbFrame *resp = protocolAllocFrame(proto);
+            usbFrameInit(resp, frame->command, FRAME_FLAG_NAK);
             protocolSend(proto, resp);
         }
     }
+}
+
+//------------------------------------------------------------------------------
+void tud_cdc_rx_cb(uint8_t itf)
+{
+    (void)itf;
 }
 
 //------------------------------------------------------------------------------
@@ -172,6 +213,11 @@ int main(void)
     SystemClock_Config();
     HAL_Init();
 
+    radioInit(&radio);
+    radioInitRegs(0);
+
+    datalinkInit(&datalink);
+
     protocolInit(&protocol);
     webusbInit(&protocol);
 
@@ -180,28 +226,25 @@ int main(void)
     info("RFUSB started");
 
     __HAL_RCC_USB_CLK_ENABLE();
-    //NVIC_SetPriority(USB_IRQn, 4);
+    NVIC_SetPriority(USB_IRQn, 4);
     tusb_init();
     dcd_int_enable(0);
 
-/*
-    __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
-    NVIC_SetPriority(OTG_FS_IRQn, 10);
-    USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_NOVBUSSENS | USB_OTG_GCCFG_PWRDWN;
-    tusb_init();
-*/
-    timerSet(&timer, 200);
+    timerSet(&timer, 500);
     while(1)
     {
         if(timerExpired(&timer))
         {
             timerRestart(&timer);
             ledToggle(LED0);
+
+            info("Version: %x", radioRead(RFM22_DEVICE_VERSION));
         }
+
         tud_task();
-/*
+
         webusbService();
         protocolService(&protocol);
-*/
+        datalinkService(&datalink);
     }
 }

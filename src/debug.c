@@ -8,6 +8,8 @@
 #include "debug.h"
 #include "config/config.h"
 
+#include "tusb.h"
+
 #include "stm32l0xx.h"
 
 #include <stdlib.h>
@@ -83,7 +85,16 @@ void debugWrite(uint8_t level, const char *name, const char *format, ...)
 
     if(len > 0)
     {
-        serialWrite(buffer, len);
-        serialWrite("\x1b[0m", 4);
+        if(tud_cdc_connected())
+        {
+            tud_cdc_write(buffer, len);
+            tud_cdc_write("\x1b[0m", 4);
+            tud_cdc_write_flush();
+        }
+        else
+        {
+            serialWrite(buffer, len);
+            serialWrite("\x1b[0m", 4);
+        }
     }
 }

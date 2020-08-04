@@ -5,10 +5,10 @@
  * @brief  
  */
 
-#include "frame.h"
+#include "usb_frame.h"
 
 //------------------------------------------------------------------------------
-void frameInit(Frame *frame, Commands cmd, Flags flags)
+void usbFrameInit(UsbFrame *frame, UsbCommands cmd, UsbFlags flags)
 {
     frame->command = cmd;
     frame->flags = flags;
@@ -17,7 +17,7 @@ void frameInit(Frame *frame, Commands cmd, Flags flags)
 }
 
 //------------------------------------------------------------------------------
-void frameAddData(Frame *frame, const uint8_t *data, uint32_t size)
+void usbFrameAddData(UsbFrame *frame, const uint8_t *data, uint32_t size)
 {
     for(uint32_t i=0; i<size; i++, frame->length++)
     {

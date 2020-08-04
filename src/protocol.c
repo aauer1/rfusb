@@ -20,7 +20,7 @@ void protocolInit(Protocol *proto)
 }
 
 //------------------------------------------------------------------------------
-void protocolSetCallback(Protocol *proto, void (*cb)(Protocol *, Frame *))
+void protocolSetCallback(Protocol *proto, void (*cb)(Protocol *, UsbFrame *))
 {
     proto->onFrameReceived = cb;
 }
@@ -58,7 +58,7 @@ void protocolAddData(Protocol *proto, uint8_t *data, uint16_t size)
 }
 
 //------------------------------------------------------------------------------
-void protocolSend(Protocol *proto, Frame *frame)
+void protocolSend(Protocol *proto, UsbFrame *frame)
 {
     uint8_t *p = (uint8_t *)frame;
     uint8_t crc = 0;
@@ -72,9 +72,9 @@ void protocolSend(Protocol *proto, Frame *frame)
 }
 
 //------------------------------------------------------------------------------
-Frame *protocolAllocFrame(Protocol *proto)
+UsbFrame *protocolAllocFrame(Protocol *proto)
 {
-    return (Frame *)proto->tx_buffer;
+    return (UsbFrame *)proto->tx_buffer;
 }
 
 //------------------------------------------------------------------------------
@@ -82,7 +82,7 @@ void protocolService(Protocol *proto)
 {
     if(proto->pwrite > 4)
     {
-        Frame *frame = (Frame *)proto->rx_buffer;
+        UsbFrame *frame = (UsbFrame *)proto->rx_buffer;
         if(proto->pwrite >= (frame->length + 5))
         {
             if(proto->onFrameReceived)

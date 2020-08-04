@@ -8,9 +8,8 @@
 #ifndef PROTOCOL_H_
 #define PROTOCOL_H_
 
-#include "frame.h"
-
 #include <stdint.h>
+#include "usb_frame.h"
 
 #define PROTOCOL_MAX_FRAME_SIZE     532
 
@@ -22,14 +21,14 @@ struct Protocol_
     uint8_t tx_buffer[PROTOCOL_MAX_FRAME_SIZE];
     uint16_t pwrite;
 
-    void (*onFrameReceived)(Protocol *proto, Frame *frame);
+    void (*onFrameReceived)(Protocol *proto, UsbFrame *frame);
 };
 
 void protocolInit(Protocol *proto);
-void protocolSetCallback(Protocol *proto, void (*cb)(Protocol *, Frame *));
+void protocolSetCallback(Protocol *proto, void (*cb)(Protocol *, UsbFrame *));
 void protocolAddData(Protocol *proto, uint8_t *data, uint16_t size);
-void protocolSend(Protocol *proto, Frame *frame);
-Frame *protocolAllocFrame(Protocol *proto);
+void protocolSend(Protocol *proto, UsbFrame *frame);
+UsbFrame *protocolAllocFrame(Protocol *proto);
 void protocolService(Protocol *proto);
 
 #endif /* PROTOCOL_H_ */
