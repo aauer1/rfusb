@@ -93,7 +93,7 @@ static const RFM22B_RegEntry RFM22B_REGS[] =
     {0x6E, 0x4E},		// TX data rate 1
     {0x6F, 0xA5},		// TX data rate 0
     {0x70, 0x2C},		// GFSK
-    //{0x58, 0x80},       // undocumented
+    {0x58, 0x80},       // undocumented
 
 //------------------------------------------------------------------------------	
 //  RX/TX Frequency settings
@@ -323,7 +323,7 @@ unsigned short radioStatus(void)
 {
     unsigned short status = 0;
     
-    status |=   radioRead(RFM22_INTERRUPT_STATUS1);
+    status |=  radioRead(RFM22_INTERRUPT_STATUS1);
     status |= (radioRead(RFM22_INTERRUPT_STATUS2) << 8);
     
     return status;

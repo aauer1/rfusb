@@ -13,13 +13,16 @@
 typedef struct UsbFrame_ UsbFrame;
 typedef enum UsbCommands_ UsbCommands;
 typedef enum UsbFlags_ UsbFlags;
+typedef struct UsbFrameData_ UsbFrameData;
 
 enum UsbCommands_
 {
     CMD_INVALID = 0,
     CMD_GET_VERSION,
-    CMD_READ_COUNTER,
-    CMD_RESET_COUNTER,
+    CMD_SEND,
+    CMD_RECEIVE,
+    CMD_RF_FAILURE,
+    CMD_SET_ADDRESS,
     CMD_RESET,
     CMD_END
 };
@@ -37,6 +40,12 @@ struct UsbFrame_
     uint8_t length;
     uint8_t crc;
     uint8_t data[];
+};
+
+struct UsbFrameData_
+{
+    uint16_t remote_address;
+    uint8_t  data[];
 };
 
 #define usbFrameSetCommand(frame, cmd)         (frame)->command = (cmd)

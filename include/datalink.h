@@ -2,6 +2,7 @@
 #define DATALINK_H
 
 #include "timer.h"
+#include "rfm22b.h"
 
 #define BROADCAST_ADDR              0xFFFF
 
@@ -75,7 +76,7 @@ struct Datalink_
 #define frameSetDestination(frame, value)           (frame)->dest_addr = (value)
 #define frameSetSource(frame, value)                (frame)->src_addr = (value)
 #define frameSetLength(frame, value)                (frame)->length = (value)
-#define frameSetData(frame, data, length)           memcpy((frame)->data, (data), (length)); (frame)->length = length
+#define frameSetData(frame, d, len)                 memcpy((frame)->data, (d), (len)); (frame)->length = len
 #define frameSetSequence(frame, value)              (frame)->sequence = (value)
 #define frameSetFlags(frame, value)                 (frame)->flags = (value)
 #define frameSetRSSI(frame, value)                  (frame)->rssi = (value)
@@ -89,7 +90,7 @@ struct Datalink_
 #define frameGetRSSI(frame)                         ((frame)->rssi)
 
 #define datalinkSetRetransmission(proto, value)     (proto)->retransmission = (value)
-#define datalinkSetAddress(proto, value)            (proto)->src_addr = (value)
+#define datalinkSetAddress(proto, value)            (proto)->src_addr = (value); radioSetRxAddress((proto)->src_addr, 0xFFFF)
 
 #define datalinkTxFrames(proto)                     ((proto)->tx_frame_first != (proto)->tx_frame_last)
 #define datalinkRxFrames(proto)                     ((proto)->rx_frame_first != (proto)->rx_frame_last)

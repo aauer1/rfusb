@@ -37,14 +37,15 @@ static void receiveRf(Datalink *proto)
 {
     Frame *frame = &proto->rx_frames[proto->rx_frame_first];
     uint32_t status;
-
+    static uint32_t last_status = 0;
 
     unsigned char rssi;
 
     rssi = radioRead(RFM22_RSSI);
     if(proto->temp_rssi < rssi)
+    {
         proto->temp_rssi = rssi;
-
+    }
 
     if(!radioInterrupt())
     {

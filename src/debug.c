@@ -85,6 +85,7 @@ void debugWrite(uint8_t level, const char *name, const char *format, ...)
 
     if(len > 0)
     {
+#if 0
         if(tud_cdc_connected())
         {
             tud_cdc_write(buffer, len);
@@ -92,6 +93,7 @@ void debugWrite(uint8_t level, const char *name, const char *format, ...)
             tud_cdc_write_flush();
         }
         else
+#endif
         {
             serialWrite(buffer, len);
             serialWrite("\x1b[0m", 4);

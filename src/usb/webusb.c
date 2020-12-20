@@ -8,6 +8,7 @@
 #include "usb/webusb.h"
 #include "usb/usb_descriptors.h"
 
+#include "led.h"
 #include "debug.h"
 
 #define URL  "tse902.emicrotec.at"

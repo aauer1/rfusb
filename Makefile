@@ -4,6 +4,7 @@
 
 CROSS_COMPILE = arm-none-eabi-
 
+GIT  = git
 CC   = $(CROSS_COMPILE)gcc
 CP   = $(CROSS_COMPILE)objcopy
 AS   = $(CROSS_COMPILE)gcc -x assembler-with-cpp
@@ -65,6 +66,8 @@ ASRC := $(foreach FILE,$(shell find $(ASMDIR) -name *.S | xargs), \
 # Define all object files.
 OBJ = $(addprefix $(OBJDIR)/,$(CSRC:.c=.o)) $(addprefix $(OBJDIR)/,$(ASRC:.S=.o))
 
+VERSION = $(shell $(GIT) describe --always)
+
 # Define all listing files.
 LST = $(ASRC:.S=.lst) $(SRC:.c=.lst)
 
@@ -84,6 +87,9 @@ init:
 	@if [ ! -e $(OBJDIR) ]; then mkdir -p $(OBJDIR); fi;
 	@$(foreach DIR,$(sort $(dir $(CSRC))), if [ ! -e $(OBJDIR)/$(DIR) ]; \
 		then mkdir -p $(OBJDIR)/$(DIR); fi; )
+
+version:
+	sed 's/".*";$$/"$(VERSION)";/' src/version.template > src/version.c
 
 # Link: create ELF output file from object files.
 $(TARGET).elf: $(OBJ) $(TINYUSB_DIR)/libtinyusb.a
