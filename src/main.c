@@ -20,9 +20,6 @@
 static USART_HandleTypeDef usart;
 static Protocol protocol;
 
-static void onReceive(Datalink *proto);
-static void onFailure(Datalink *proto);
-
 static RFM22BConfig radio =
 {
     .spi = SPI1,
@@ -33,11 +30,23 @@ static RFM22BConfig radio =
 
 static Datalink datalink =
 {
-    .src_addr = 0xFF01,
+    .src_addr = 0x12345678,
     .retransmission = 3,
-    .onReceive = onReceive,
-    .onFailure = onFailure,
 };
+
+static IP ip;
+
+//------------------------------------------------------------------------------
+void EXTI2_3_IRQHandler(void)
+{
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_3);
+}
+
+//------------------------------------------------------------------------------
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    radioIrqHandler(GPIO_Pin);
+}
 
 //------------------------------------------------------------------------------
 void USB_IRQHandler(void)
@@ -145,6 +154,8 @@ void HAL_USART_MspInit(USART_HandleTypeDef *husart)
 //------------------------------------------------------------------------------
 void HAL_MspInit(void)
 {
+    NVIC_SetPriority(SysTick_IRQn, 2);
+
     __GPIOA_CLK_ENABLE();
     __GPIOB_CLK_ENABLE();
 
@@ -161,28 +172,18 @@ void HAL_MspInit(void)
 }
 
 //------------------------------------------------------------------------------
-static void onReceive(Datalink *proto)
+static void onIpReceive(IP *ip, uint8_t *data, uint32_t size)
 {
-    debug("Receive");
-
-    ledToggle(LED1);
-
+/*
+    debug("Receive: %d", size);
+    for(uint32_t i=0; i<size; i++)
+    {
+        debug("%02X", data[i]);
+    }
+*/
     UsbFrame *resp = protocolAllocFrame(&protocol);
     usbFrameInit(resp, CMD_RECEIVE, 0);
-
-    Frame *frame = datalinkGetRxFrame(proto);
-    usbFrameAddData(resp, (uint8_t *)frame, frame->length + 5);
-    datalinkReleaseRxFrame(proto);
-    protocolSend(&protocol, resp);
-}
-
-//------------------------------------------------------------------------------
-static void onFailure(Datalink *proto)
-{
-    debug("Failure");
-
-    UsbFrame *resp = protocolAllocFrame(&protocol);
-    usbFrameInit(resp, CMD_RF_FAILURE, 0);
+    usbFrameAddData(resp, (uint8_t *)data, size);
     protocolSend(&protocol, resp);
 }
 
@@ -190,7 +191,7 @@ static void onFailure(Datalink *proto)
 void tud_cdc_rx_cb(uint8_t itf)
 {
     (void)itf;
-    uint8_t buffer[128];
+    uint8_t buffer[256];
     uint32_t len;
 
     len = tud_cdc_read(buffer, sizeof(buffer));
@@ -211,9 +212,10 @@ int main(void)
     radioSetPower(7);
     radioSetRssiThreashold(80);
 
-    datalinkInit(&datalink);
+    ipInit(&ip, &datalink);
+    ipSetCallback(&ip, onIpReceive);
 
-    commInit(&datalink);
+    commInit(&ip);
     protocolInit(&protocol);
     webusbInit(&protocol);
 
@@ -221,6 +223,11 @@ int main(void)
     protocolSetSendCallback(&protocol, commSend);
 
     info("RFUSB started");
+    info("Version: %02X", radioRead(RFM22_DEVICE_VERSION));
+
+    HAL_NVIC_SetPriority(EXTI2_3_IRQn, 3, 0);
+    __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_3);
+    NVIC_EnableIRQ(EXTI2_3_IRQn);
 
     __HAL_RCC_USB_CLK_ENABLE();
     //NVIC_SetPriority(USB_IRQn, 4);

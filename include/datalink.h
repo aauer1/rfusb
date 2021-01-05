@@ -4,11 +4,15 @@
 #include "timer.h"
 #include "rfm22b.h"
 
-#define BROADCAST_ADDR              0xFFFF
+#include <string.h>
 
-#define MAX_DATA_LENGTH             32
-#define MAX_TX_FRAME_NUM            8
+#define BROADCAST_ADDR              0xFFFFFFFF
+
+#define MAX_DATA_LENGTH             128
+#define MAX_TX_FRAME_NUM            16
 #define MAX_RX_FRAME_NUM            8
+
+#define MAX_PACKET_SIZE             1536
 
 #ifdef ADAPTIVE_RF_POWER
 #   define MIN_RSSI_LEVEL              100
@@ -29,54 +33,63 @@ enum DatalinkState_
 
 enum DatalinkFlags_
 {
-    FLAG_ACK = 0,
+    FLAG_ACK   = 0,
+    FLAG_NAK   = 1,
+    FLAG_DGRAM = 2,
+
+    FLAG_FIRST = 4,
+    FLAG_LAST  = 5,
 };
 
 struct Frame_
 {
-    unsigned short dest_addr;
-    unsigned short src_addr;
-    unsigned char  length;
-    unsigned char  sequence;
-    unsigned char  flags;
-    unsigned char  rssi;
-    unsigned char  data[MAX_DATA_LENGTH];
+    uint32_t dest_addr;
+    uint8_t  length;
+    uint8_t  sequence;
+    uint8_t  flags;
+    uint8_t  rssi;
+    uint32_t src_addr;
+    uint8_t  data[MAX_DATA_LENGTH];
 };
 
 struct Datalink_
 {
 // public:
-    unsigned short src_addr;
+    uint32_t src_addr;
     
-    unsigned short tx_errors;
-    unsigned char  retransmission;
-    void (*onReceive)(Datalink *proto);
-    void (*onFailure)(Datalink *proto);
+    uint8_t tx_errors;
+    uint8_t retransmission;
+    void (*onReceive)(Datalink *proto, void *userarg);
+    void (*onFailure)(Datalink *proto, void *userarg);
+    void *userarg;
     
 // private:
     Frame tx_frames[MAX_TX_FRAME_NUM];
-    unsigned short tx_sent;
-    unsigned char tx_frame_first;
-    unsigned char tx_frame_last;
+    uint8_t tx_sent;
+    uint8_t tx_frame_first;
+    uint8_t tx_frame_last;
 
     Frame rx_frames[MAX_RX_FRAME_NUM];
-    unsigned char rx_frame_first;
-    unsigned char rx_frame_last;
+    uint8_t rx_frame_first;
+    uint8_t rx_frame_last;
+
+    uint8_t rx_buffer[MAX_PACKET_SIZE];
+    uint16_t rx_buffer_size;
 
     Timer tx_timeout;
-    unsigned char tx_count;
-    unsigned char tx_retransmit;
+    uint8_t tx_count;
+    uint8_t tx_retransmit;
     
-    unsigned char rssi;
-    unsigned char temp_rssi;
-    unsigned char sequence;
-    unsigned char state;
+    uint8_t rssi;
+    uint8_t temp_rssi;
+    uint8_t sequence;
+    uint8_t state;
 };
 
 #define frameSetDestination(frame, value)           (frame)->dest_addr = (value)
 #define frameSetSource(frame, value)                (frame)->src_addr = (value)
 #define frameSetLength(frame, value)                (frame)->length = (value)
-#define frameSetData(frame, d, len)                 memcpy((frame)->data, (d), (len)); (frame)->length = len
+#define frameSetData(frame, d, len)                 memcpy((frame)->data, (d), (len)); frame->length = (len)
 #define frameSetSequence(frame, value)              (frame)->sequence = (value)
 #define frameSetFlags(frame, value)                 (frame)->flags = (value)
 #define frameSetRSSI(frame, value)                  (frame)->rssi = (value)
@@ -90,7 +103,7 @@ struct Datalink_
 #define frameGetRSSI(frame)                         ((frame)->rssi)
 
 #define datalinkSetRetransmission(proto, value)     (proto)->retransmission = (value)
-#define datalinkSetAddress(proto, value)            (proto)->src_addr = (value); radioSetRxAddress((proto)->src_addr, 0xFFFF)
+//#define datalinkSetAddress(proto, value)            (proto)->src_addr = (value); radioSetRxAddress((proto)->src_addr, 0xFFFF)
 
 #define datalinkTxFrames(proto)                     ((proto)->tx_frame_first != (proto)->tx_frame_last)
 #define datalinkRxFrames(proto)                     ((proto)->rx_frame_first != (proto)->rx_frame_last)

@@ -10,9 +10,9 @@
 
 #include "usb_frame.h"
 #include "protocol.h"
-#include "datalink.h"
+#include "ip.h"
 
-void commInit(Datalink *link);
+void commInit(IP *ip);
 void commSend(uint8_t *data, uint32_t length);
 void commOnUsbFrameReceived(Protocol *proto, UsbFrame *frame);
 

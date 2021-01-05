@@ -81,8 +81,8 @@
 #define CFG_TUD_VENDOR            1
 
 // CDC FIFO size of TX and RX
-#define CFG_TUD_CDC_RX_BUFSIZE    64
-#define CFG_TUD_CDC_TX_BUFSIZE    64
+#define CFG_TUD_CDC_RX_BUFSIZE    512
+#define CFG_TUD_CDC_TX_BUFSIZE    1536
 
 // Vendor FIFO size of TX and RX
 // If not configured vendor endpoints will not be buffered

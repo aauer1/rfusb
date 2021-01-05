@@ -55,6 +55,7 @@ void protocolAddData(Protocol *proto, uint8_t *data, uint16_t size)
     {
         memcpy(proto->rx_buffer + proto->pwrite, data, size);
         proto->pwrite += size;
+        debug("Data size: %d / %d", size, proto->pwrite);
     }
     else
     {
@@ -70,14 +71,14 @@ void protocolSend(Protocol *proto, UsbFrame *frame)
     uint8_t *p = (uint8_t *)frame;
     uint8_t crc = 0;
 
-    for(uint32_t i=0; i<(frame->length+4); i++)
+    for(uint32_t i=0; i<(frame->length+5); i++)
     {
         crc ^= p[i];
     }
     frame->crc = crc;
     if(proto->send != 0)
     {
-        proto->send((uint8_t *)frame, frame->length+4);
+        proto->send((uint8_t *)frame, frame->length+5);
     }
 }
 
@@ -90,10 +91,10 @@ UsbFrame *protocolAllocFrame(Protocol *proto)
 //------------------------------------------------------------------------------
 void protocolService(Protocol *proto)
 {
-    if(proto->pwrite > 3)
+    if(proto->pwrite > 4)
     {
         UsbFrame *frame = (UsbFrame *)proto->rx_buffer;
-        if(proto->pwrite >= (frame->length + 4))
+        if(proto->pwrite >= (frame->length + 5))
         {
             if(proto->onFrameReceived)
             {

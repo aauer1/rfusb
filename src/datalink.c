@@ -2,8 +2,10 @@
 
 #include "datalink.h"
 #include "rfm22b.h"
-
+#include "led.h"
 #include "debug.h"
+
+#include <string.h>
 
 //------------------------------------------------------------------------------
 static void adjustRfPower(unsigned char rssi)
@@ -33,73 +35,63 @@ static void adjustRfPower(unsigned char rssi)
 }
 
 //------------------------------------------------------------------------------
-static void receiveRf(Datalink *proto)
+static void receive(Datalink *proto)
 {
     Frame *frame = &proto->rx_frames[proto->rx_frame_first];
-    uint32_t status;
-    static uint32_t last_status = 0;
-
-    unsigned char rssi;
-
-    rssi = radioRead(RFM22_RSSI);
+    uint8_t rssi;
+/*
+    ATOMIC_BLOCK()
+    {
+        rssi = radioRead(RFM22_RSSI);
+    }
     if(proto->temp_rssi < rssi)
     {
         proto->temp_rssi = rssi;
     }
-
-    if(!radioInterrupt())
+*/
+    uint16_t len = radioReceive((uint8_t *)frame, MAX_DATA_LENGTH + 12);
+    if(len == 0)
     {
         return;
     }
 
-    status = radioStatus();
+    proto->rssi = proto->temp_rssi;
+    proto->temp_rssi = 0;
 
-    // TODO: replace it with some macro like for the SPIRIT1
-    if(status & RFM22_VALID_PACKET)
+    // Process packet acknowledge
+    if(proto->tx_sent)
     {
-        uint16_t len = radioReceivePacket((unsigned char *)frame, MAX_DATA_LENGTH + 3);
-        if(len == 0)
+        if(proto->tx_frames[proto->tx_frame_last].sequence == frame->sequence &&
+          (proto->rx_frames[proto->rx_frame_first].flags & (1 << FLAG_ACK)))
         {
-            debug("Invalid RX packet (size too big).");
-        }
-        else
-        {
-            proto->rssi = proto->temp_rssi;
-            proto->temp_rssi = 0;
-            if(proto->tx_sent)
+            proto->tx_sent &= ~(1 << proto->tx_frame_last);
+            proto->tx_frame_last++;
+            if(proto->tx_frame_last == MAX_TX_FRAME_NUM)
             {
-                if(proto->tx_frames[proto->tx_frame_last].sequence == frame->sequence &&
-                   proto->rx_frames[proto->rx_frame_first].flags & (1 << FLAG_ACK))
-                {
-                    proto->tx_sent &= ~(1 << proto->tx_frame_last);
-                    proto->tx_frame_last++;
-                    if(proto->tx_frame_last == MAX_TX_FRAME_NUM)
-                    {
-                        proto->tx_frame_last = 0;
-                    }
-                }
-            }
-
-            adjustRfPower(frame->rssi);
-            debug("RSSI level: %d", proto->rssi);
-
-            proto->rx_frame_first++;
-            if(proto->rx_frame_first == MAX_RX_FRAME_NUM)
-            {
-                proto->rx_frame_first = 0;
-            }
-
-            if(proto->onReceive)
-            {
-                proto->tx_errors = 0;
-                proto->onReceive(proto);
+                proto->tx_frame_last = 0;
             }
         }
+    }
+/*
+    adjustRfPower(frame->rssi);
+    debug("RSSI level: %d", proto->rssi);
+*/
+
+    proto->rx_frame_first++;
+    if(proto->rx_frame_first == MAX_RX_FRAME_NUM)
+    {
+        proto->rx_frame_first = 0;
+    }
+
+    if(proto->onReceive)
+    {
+        proto->tx_errors = 0;
+        proto->onReceive(proto, proto->userarg);
     }
 }
 
 //------------------------------------------------------------------------------
-static uint8_t sendRf(Datalink *proto)
+static uint8_t send(Datalink *proto)
 {
     Frame *frame; 
     
@@ -115,12 +107,15 @@ static uint8_t sendRf(Datalink *proto)
             {
                 frame->sequence = proto->sequence++;
             }
+
             frameSetRSSI(frame, proto->rssi);
-            radioSetHeader(frame->dest_addr, frame->src_addr);
-            radioTransmitPacket(&frame->sequence, frame->length+3);
+            radioSetHeader(frame->dest_addr);
+            uint8_t *data = (uint8_t *)frame;
+            data += 5;
+            radioTransmit(data, frame->length+7);
 
             if(frame->dest_addr == BROADCAST_ADDR ||
-               (frame->flags & (1 << FLAG_ACK)))
+               (frame->flags & ((1 << FLAG_ACK) | (1 << FLAG_DGRAM))))
             {
                 proto->tx_frame_last++;
                 if(proto->tx_frame_last == MAX_TX_FRAME_NUM)
@@ -136,12 +131,10 @@ static uint8_t sendRf(Datalink *proto)
 
             return 1;
         }
-#ifdef DEBUG
         else
         {
             debug("Channel NOT CLEAR");
         }
-#endif
     }
 
     return 0;
@@ -171,78 +164,6 @@ static void datalinkSetModeRf(Datalink *proto, DatalinkState value)
     }
 }
 
-//------------------------------------------------------------------------------
-static void datalinkServiceRf(Datalink *proto)
-{
-    if(proto->tx_frame_first != proto->tx_frame_last)
-    {
-        if(!(proto->tx_sent & (1 << proto->tx_frame_last)))
-        {
-            debug("TX_Frame (1)");
-
-            sendRf(proto);
-            proto->state = STATE_TX;
-            proto->tx_count = 0;
-            proto->tx_retransmit = 0;
-        }
-        else if(timerExpired(&(proto->tx_timeout)))
-        {
-            if(proto->tx_count < proto->retransmission)
-            {
-                radioSetPower(0x07);
-                proto->tx_retransmit = 1;
-                proto->tx_count++;
-            }
-            else
-            {
-                debug("Retransmission error");
-
-                proto->tx_errors++;
-                if(proto->onFailure)
-                {
-                    proto->onFailure(proto);
-                }
-                proto->tx_sent &= ~(1 << proto->tx_frame_last);
-                proto->tx_frame_last++;
-                if(proto->tx_frame_last == MAX_TX_FRAME_NUM)
-                {
-                    proto->tx_frame_last = 0;
-                }
-                
-                debug("Full RF power");
-                datalinkSetMode(proto, STATE_RX);
-            }
-        }
-    }
-
-    if(proto->tx_retransmit)
-    {
-        debug("Retransmission %d", proto->tx_count+1);
-
-        uint8_t ret = 0;
-        ret = sendRf(proto);
-        proto->state = STATE_TX;
-        if(ret == 1)
-        {
-            proto->tx_retransmit = 0;
-        }
-    }
-
-
-    if(proto->tx_sent && proto->state != STATE_RX)
-    {
-        debug("switch to RX mode");
-
-        datalinkSetMode(proto, STATE_RX);
-    }
-
-    if(proto->state == STATE_RX || proto->tx_sent)
-    {
-        receiveRf(proto);
-    }
-}
-
-//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 void datalinkInit(Datalink *proto)
 {
@@ -290,7 +211,71 @@ void datalinkSetMode(Datalink *proto, DatalinkState value)
 //------------------------------------------------------------------------------
 void datalinkService(Datalink *proto)
 {
-    datalinkServiceRf(proto);
+    if(proto->tx_frame_first != proto->tx_frame_last)
+    {
+        debug("Frame(s) to send");
+        if(!(proto->tx_sent & (1 << proto->tx_frame_last)))
+        {
+            debug("TX_Frame (1)");
+
+            send(proto);
+            proto->state = STATE_TX;
+            proto->tx_count = 0;
+            proto->tx_retransmit = 0;
+        }
+        else if(timerExpired(&(proto->tx_timeout)))
+        {
+            if(proto->tx_count < proto->retransmission)
+            {
+                radioSetPower(0x07);
+                proto->tx_retransmit = 1;
+                proto->tx_count++;
+            }
+            else
+            {
+                debug("Retransmission error");
+
+                proto->tx_errors++;
+                if(proto->onFailure)
+                {
+                    proto->onFailure(proto, proto->userarg);
+                }
+                proto->tx_sent &= ~(1 << proto->tx_frame_last);
+                proto->tx_frame_last++;
+                if(proto->tx_frame_last == MAX_TX_FRAME_NUM)
+                {
+                    proto->tx_frame_last = 0;
+                }
+
+                debug("Full RF power");
+                datalinkSetMode(proto, STATE_RX);
+            }
+        }
+    }
+
+    if(proto->tx_retransmit)
+    {
+        debug("Retransmission %d", proto->tx_count+1);
+
+        uint8_t ret = 0;
+        ret = send(proto);
+        proto->state = STATE_TX;
+        if(ret == 1)
+        {
+            proto->tx_retransmit = 0;
+        }
+    }
+
+    if(proto->state != STATE_RX)
+    {
+        debug("switch to RX mode");
+        datalinkSetMode(proto, STATE_RX);
+    }
+
+    if(proto->state == STATE_RX)
+    {
+        receive(proto);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -310,4 +295,3 @@ void datalinkAddTxFrame(Datalink *proto, Frame *packet)
         proto->tx_frame_first = 0;
     }
 }
-

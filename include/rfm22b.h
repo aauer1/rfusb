@@ -174,6 +174,7 @@ struct RFM22BConfig_
 
 void radioInit(RFM22BConfig *config);
 void radioInitRegs(const RFM22B_RegEntry *regs);
+void radioIrqHandler(uint16_t pin);
 unsigned char radioInterrupt(void);
 void radioShutdown(void);
 void radioWakeup(void);
@@ -181,6 +182,11 @@ unsigned char radioRead(unsigned char addr);
 void radioWrite(unsigned char addr, unsigned char value);
 void radioReadBurst(unsigned char addr, unsigned char *data, unsigned char len);
 void radioWriteBurst(unsigned char addr, unsigned char *data, unsigned char len);
+
+uint8_t radioTransmit(uint8_t *data, uint16_t size);
+void radioSetInterrupts(uint16_t flags);
+uint16_t radioGetInterrupts();
+uint16_t radioWaitInterrupt();
 
 unsigned char radioTransmitPacket(unsigned char *data, unsigned char size);
 void radioReadyMode(void);
@@ -191,9 +197,11 @@ void radioSetPower(unsigned char power);
 unsigned char radioGetPower(void);
 void radioSetRssiThreashold(uint8_t level);
 void radioSetFrequency(uint32_t freq);
-void radioSetHeader(unsigned short dest, unsigned short src);
-void radioSetRxAddress(unsigned short address, unsigned short mask);
+void radioSetHeader(uint32_t dest);
+void radioSetRxAddress(uint32_t address, uint32_t mask);
 unsigned char radioReceivePacket(unsigned char *data, uint16_t max_len);
+
+uint8_t radioReceive(uint8_t *data, uint16_t max_len);
 
 #endif
 

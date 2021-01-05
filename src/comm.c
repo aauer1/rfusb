@@ -16,7 +16,7 @@
 
 #include <string.h>
 
-static Datalink *datalink;
+static IP *ip_;
 
 //------------------------------------------------------------------------------
 static void commProcGetVersion(Protocol *proto, UsbFrame *frame)
@@ -35,12 +35,14 @@ static void commProcSend(Protocol *proto, UsbFrame *frame)
     UsbFrameData *usbdata = (UsbFrameData *)frame->data;
     uint8_t len = frame->length - 2;
 
+    ipSend(ip_, 0xffffffff, frame->data, frame->length);
+/*
     Frame *tx = datalinkGetFreeTxFrame(datalink);
     frameSetDestination(tx, usbdata->remote_address);
     frameSetFlags(tx, 0);
     frameSetData(tx, usbdata->data, len);
     datalinkAddTxFrame(datalink, tx);
-
+*/
     UsbFrame *resp = protocolAllocFrame(proto);
     usbFrameInit(resp, frame->command, FRAME_FLAG_ACK);
     protocolSend(proto, resp);
@@ -49,9 +51,10 @@ static void commProcSend(Protocol *proto, UsbFrame *frame)
 //------------------------------------------------------------------------------
 static void commProcSetAddress(Protocol *proto, UsbFrame *frame)
 {
+    /*
     uint16_t *address = (uint16_t *)frame->data;
     datalinkSetAddress(datalink, *address);
-
+     */
     UsbFrame *resp = protocolAllocFrame(proto);
     usbFrameInit(resp, frame->command, FRAME_FLAG_ACK);
     protocolSend(proto, resp);
@@ -68,9 +71,9 @@ static void commProcReset(Protocol *proto, UsbFrame *frame)
 }
 
 //------------------------------------------------------------------------------
-void commInit(Datalink *link)
+void commInit(IP *ip)
 {
-    datalink = link;
+    ip_ = ip;
 }
 
 //------------------------------------------------------------------------------

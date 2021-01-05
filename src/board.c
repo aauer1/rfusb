@@ -19,7 +19,7 @@ static const PinConfig BOARD_CONFIG[] =
         },
         {
             .pin = 3,
-            .init = { .Mode = GPIO_MODE_INPUT, .Pull = GPIO_PULLUP, .Speed = GPIO_SPEED_HIGH, .Alternate = 0 }
+            .init = { .Mode = GPIO_MODE_IT_FALLING, .Pull = GPIO_PULLUP, .Speed = GPIO_SPEED_HIGH, .Alternate = 0 }
         },
         {
             .pin = 4,

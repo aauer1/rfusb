@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include "usb_frame.h"
 
-#define PROTOCOL_MAX_FRAME_SIZE     532
+#define PROTOCOL_MAX_FRAME_SIZE     1536
 
 typedef struct Protocol_ Protocol;
 

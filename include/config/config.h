@@ -15,6 +15,6 @@
  * LEVEL_DEBUG    0
  * LEVEL_INFO     1
  */
-#define DEBUG_LEVEL         LEVEL_DEBUG
+#define DEBUG_LEVEL         LEVEL_INFO
 
 #endif /* CONFIG_H_ */

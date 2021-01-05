@@ -37,7 +37,7 @@ struct UsbFrame_
 {
     uint8_t command;
     uint8_t flags;
-    uint8_t length;
+    uint16_t length;
     uint8_t crc;
     uint8_t data[];
 };
